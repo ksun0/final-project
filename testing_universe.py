@@ -39,7 +39,7 @@ model.compile(loss='mse', optimizer=rms)
 
 DEATH_COST = -5
 
-epochs = 2000
+epochs = 1
 gamma = 0.9 #since it may take several moves to goal, making gamma high
 epsilon = 1
 games = 0
@@ -99,3 +99,37 @@ while games < epochs:
         epsilon -= (1/epochs)
 
     games += 1
+
+while True:
+
+    while True: #we need to call an action to get the state to update
+        action_n = [[('PointerEvent', 200, 200, False)]]
+        state, reward_n, done_n, info = env.step(action_n)
+        env.render()
+
+        try:
+            state[0]['vision']
+            break
+        except:
+            pass
+
+    state = np.array(state[0]['vision'])
+
+    #while game still in progress
+    while(not done_n[0]):
+        #We are in state S
+        #Let's run our Q function on S to get Q values for all possible actions
+        qval = model.predict(state.reshape(1,2359296), batch_size=1)
+        if (random.random() < epsilon): #choose random action
+            action = np.random.randint(0,16)
+        else: #choose best action from Q(s,a) values
+            action = (np.argmax(qval))
+        #Take action, observe new state S'
+        new_state, reward, done_n, info = makeMove(state, action)
+        if done_n[0]:
+            new_state = state
+        else:
+            new_state = np.array(new_state[0]['vision'])
+        env.render()
+        state = new_state
+        clear_output(wait=True)
