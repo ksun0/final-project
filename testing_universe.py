@@ -18,12 +18,13 @@ def makeMove(state, action):
     return env.step(action_n)
 
 def simplify(data):
+    data = np.array(data)[0:530,0:470,0:3]
     new = []
     for i in range(len(data)):
         new.append([])
         for j in range(len(data[0])):
             new[i].append(sum(data[i][j]))
-    return np.array(new)[0:530,0:470]
+    return np.array(new)
 
 model = Sequential()
 model.add(Dense(164, init='lecun_uniform', input_shape=(530*470,)))
@@ -46,7 +47,7 @@ state = env.reset()
 
 DEATH_COST = -10
 
-epochs = 50
+epochs = 25
 gamma = 0.9 #since it may take several moves to goal, making gamma high
 epsilon = 1
 games = 0
