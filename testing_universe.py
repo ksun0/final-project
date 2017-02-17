@@ -17,8 +17,16 @@ def makeMove(state, action):
         action_n = [[('PointerEvent', mousePositions[int(action)//2][0] + 265, mousePositions[int(action)//2][1] + 235, True)]]
     return env.step(action_n)
 
+def simplify(data):
+    new = []
+    for i in range(len(data)):
+        new.append([])
+        for j in range(len(data[0])):
+            new[i].append(sum(data[i][j]))
+    return np.array(new)[0:530,0:470]
+
 model = Sequential()
-model.add(Dense(164, init='lecun_uniform', input_shape=(2359296,)))
+model.add(Dense(164, init='lecun_uniform', input_shape=(530*470,)))
 model.add(Activation('relu'))
 #model.add(Dropout(0.2)) I'm not using dropout, but maybe you wanna give it a try?
 
@@ -57,28 +65,28 @@ while games < epochs:
         except:
             pass
 
-    state = np.array(state[0]['vision'])
+    state = simplify(state[0]['vision'])
 
     #while game still in progress
     while(not done_n[0]):
         #We are in state S
         #Let's run our Q function on S to get Q values for all possible actions
-        qval = model.predict(state.reshape(1,2359296), batch_size=1)
+        qval = model.predict(state.reshape(1,530*470), batch_size=1)
         if (random.random() < epsilon): #choose random action
             action = np.random.randint(0,16)
         else: #choose best action from Q(s,a) values
             action = (np.argmax(qval))
         #Take action, observe new state S'
         new_state, reward, done_n, info = makeMove(state, action)
-        if done_n[0] or not new_state[0]['vision']:
+        if done_n[0]:
             new_state = state
         else:
-            new_state = np.array(new_state[0]['vision'])
+            new_state = simplify(new_state[0]['vision'])
         env.render()
         #Observe reward
 
         #Get max_Q(S',a)
-        newQ = model.predict(new_state.reshape(1,2359296), batch_size=1)
+        newQ = model.predict(new_state.reshape(1,530*470), batch_size=1)
         maxQ = np.max(newQ)
         y = np.zeros((1,16))
         y[:] = qval[:]
@@ -88,7 +96,7 @@ while games < epochs:
             update = (DEATH_COST + (gamma * maxQ))
         y[0][action] = update #target output
         print("Game #: %s" % (games,))
-        model.fit(state.reshape(1,2359296), y, batch_size=1, nb_epoch=1, verbose=1)
+        model.fit(state.reshape(1,530*470), y, batch_size=1, nb_epoch=1, verbose=1)
         state = new_state
         clear_output(wait=True)
 
@@ -113,13 +121,13 @@ while True:
         except:
             pass
 
-    state = np.array(state[0]['vision'])
+    state = simplify(state[0]['vision'])
 
     #while game still in progress
     while(not done_n[0]):
         #We are in state S
         #Let's run our Q function on S to get Q values for all possible actions
-        qval = model.predict(state.reshape(1,2359296), batch_size=1)
+        qval = model.predict(state.reshape(1,530*470), batch_size=1)
         if (random.random() < epsilon): #choose random action
             action = np.random.randint(0,16)
         else: #choose best action from Q(s,a) values
@@ -130,7 +138,7 @@ while True:
         if done_n[0]:
             new_state = state
         else:
-            new_state = np.array(new_state[0]['vision'])
+            new_state = simplify(new_state[0]['vision'])
         env.render()
         state = new_state
         clear_output(wait=True)
