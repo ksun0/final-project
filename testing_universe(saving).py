@@ -1,6 +1,6 @@
 import gym
 import universe  # register the universe environments
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from keras.layers.core import Dense, Dropout, Activation
 from keras.optimizers import RMSprop
 from IPython.display import clear_output
@@ -17,20 +17,24 @@ def makeMove(state, action):
         action_n = [[('PointerEvent', mousePositions[int(action)//2][0] + 265, mousePositions[int(action)//2][1] + 235, True)]]
     return env.step(action_n)
 
-model = Sequential()
-model.add(Dense(164, init='lecun_uniform', input_shape=(2359296,)))
-model.add(Activation('relu'))
-#model.add(Dropout(0.2)) I'm not using dropout, but maybe you wanna give it a try?
+try:
+    model = load_model('my_first_model.h5')
+    print("model loaded")
+except:
+    model = Sequential()
+    model.add(Dense(164, init='lecun_uniform', input_shape=(2359296,)))
+    model.add(Activation('relu'))
+    #model.add(Dropout(0.2)) I'm not using dropout, but maybe you wanna give it a try?
 
-model.add(Dense(150, init='lecun_uniform'))
-model.add(Activation('relu'))
-#model.add(Dropout(0.2))
+    model.add(Dense(150, init='lecun_uniform'))
+    model.add(Activation('relu'))
+    #model.add(Dropout(0.2))
 
-model.add(Dense(16, init='lecun_uniform'))
-model.add(Activation('linear')) #linear output so we can have range of real-valued outputs
+    model.add(Dense(16, init='lecun_uniform'))
+    model.add(Activation('linear')) #linear output so we can have range of real-valued outputs
 
-rms = RMSprop()
-model.compile(loss='mse', optimizer=rms)
+    rms = RMSprop()
+    model.compile(loss='mse', optimizer=rms)
 
 env = gym.make('internet.SlitherIO-v0')
 env.configure(remotes=1)  # automatically creates a local docker container
@@ -99,6 +103,7 @@ while games < epochs:
 
     games += 1
 
+model.save('my_first_model.h5')
 
 while True:
 
