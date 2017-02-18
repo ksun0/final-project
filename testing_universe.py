@@ -8,6 +8,7 @@ import random
 import numpy as np
 from skimage.color import rgb2gray
 from skimage.transform import resize
+from keras.models import load_model
 
 def makeMove(state, action):
     mousePositions = []
@@ -46,7 +47,7 @@ state = env.reset()
 
 DEATH_COST = -10
 
-epochs = 25
+epochs = 250
 gamma = 0.9 #since it may take several moves to goal, making gamma high
 epsilon = 1
 games = 0
@@ -107,8 +108,10 @@ while games < epochs:
 
     games += 1
 
+    if games % 10 == 0:
+        model.save('model250.h5')
 
-while True:
+while False:
 
     while True: #we need to call an action to get the state to update
         action_n = [[('PointerEvent', 200, 200, False)]]
