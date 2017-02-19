@@ -10,6 +10,15 @@ from skimage.color import rgb2gray
 from skimage.transform import resize
 from keras.models import load_model
 
+epochs = 0
+gamma = 0.9 #since it may take several moves to goal, making gamma high
+epsilon = 1
+games = 0
+done_n = [False]
+DEATH_COST = -10
+LOAD = True
+PLAY_AFTER = True
+
 def makeMove(state, action):
     mousePositions = []
     for i in range(8):
@@ -26,32 +35,29 @@ def simplify(data):
     data = resize(data, (265, 235))
     return np.array(data)
 
-model = Sequential()
-model.add(Dense(164, init='lecun_uniform', input_shape=(265*235,)))
-model.add(Activation('relu'))
-#model.add(Dropout(0.2)) I'm not using dropout, but maybe you wanna give it a try?
+if not LOAD:
 
-model.add(Dense(150, init='lecun_uniform'))
-model.add(Activation('relu'))
-#model.add(Dropout(0.2))
+    model = Sequential()
+    model.add(Dense(164, init='lecun_uniform', input_shape=(265*235,)))
+    model.add(Activation('relu'))
+    #model.add(Dropout(0.2)) I'm not using dropout, but maybe you wanna give it a try?
 
-model.add(Dense(16, init='lecun_uniform'))
-model.add(Activation('linear')) #linear output so we can have range of real-valued outputs
+    model.add(Dense(150, init='lecun_uniform'))
+    model.add(Activation('relu'))
+    #model.add(Dropout(0.2))
 
-rms = RMSprop()
-model.compile(loss='mse', optimizer=rms)
+    model.add(Dense(16, init='lecun_uniform'))
+    model.add(Activation('linear')) #linear output so we can have range of real-valued outputs
+
+    rms = RMSprop()
+    model.compile(loss='mse', optimizer=rms)\
+
+else:
+    model = load_model('model250.h5')
 
 env = gym.make('internet.SlitherIO-v0')
 env.configure(remotes=1)  # automatically creates a local docker container
 state = env.reset()
-
-DEATH_COST = -10
-
-epochs = 250
-gamma = 0.9 #since it may take several moves to goal, making gamma high
-epsilon = 1
-games = 0
-done_n = [False]
 
 while games < epochs:
 
@@ -111,7 +117,7 @@ while games < epochs:
     if games % 10 == 0:
         model.save('model250.h5')
 
-while False:
+while PLAY_AFTER:
 
     while True: #we need to call an action to get the state to update
         action_n = [[('PointerEvent', 200, 200, False)]]

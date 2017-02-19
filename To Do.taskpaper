@@ -1,5 +1,6 @@
 To Do:
 - Check if boosting creates negative reward
 - Implement that ourselves if not
+- Fix Negative reward for death
 - Loading the model
 - Different Neural Net / Why did we use this one?
