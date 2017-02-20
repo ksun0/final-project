@@ -15,7 +15,7 @@ gamma = 0.9 #since it may take several moves to goal, making gamma high
 epsilon = 1
 games = 0
 done_n = [False]
-DEATH_COST = -10
+DEATH_COST = -1/600
 LOAD = True
 PLAY_AFTER = True
 
@@ -61,6 +61,8 @@ state = env.reset()
 
 while games < epochs:
 
+    rounds = 0 #keep track of how long snake is alive
+
     while True: #we need to call an action to get the state to update
         action_n = [[('PointerEvent', 200, 200, False)]]
         state, reward_n, done_n, info = env.step(action_n)
@@ -99,13 +101,17 @@ while games < epochs:
         y[:] = qval[:]
         if not done_n[0]: #non-terminal state
             update = ((reward[0] - 0.1) + (gamma * maxQ))
+            if action >= 8:
+                update -= 0.1 #Penalize for boosting
         else: #terminal state
-            update = (DEATH_COST + (gamma * maxQ))
+            update = (DEATH_COST * rounds + (gamma * maxQ))
         y[0][action] = update #target output
         print("Game #: %s" % (games,))
         model.fit(state.reshape(1,530*470/4), y, batch_size=1, nb_epoch=1, verbose=1)
         state = new_state
         clear_output(wait=True)
+
+        rounds += 1
 
 
 
