@@ -80,7 +80,7 @@ while games < epochs:
     while(not done_n[0]):
         #We are in state S
         #Let's run our Q function on S to get Q values for all possible actions
-        qval = model.predict(state.reshape(1,530*470/4), batch_size=1)
+        qval = model.predict(state.reshape(1,530*470//4), batch_size=1)
         if (random.random() < epsilon): #choose random action
             action = np.random.randint(0,16)
         else: #choose best action from Q(s,a) values
@@ -95,7 +95,7 @@ while games < epochs:
         #Observe reward
 
         #Get max_Q(S',a)
-        newQ = model.predict(new_state.reshape(1,530*470/4), batch_size=1)
+        newQ = model.predict(new_state.reshape(1,530*470//4), batch_size=1)
         maxQ = np.max(newQ)
         y = np.zeros((1,16))
         y[:] = qval[:]
@@ -107,7 +107,7 @@ while games < epochs:
             update = (DEATH_COST * rounds + (gamma * maxQ))
         y[0][action] = update #target output
         print("Game #: %s" % (games,))
-        model.fit(state.reshape(1,530*470/4), y, batch_size=1, nb_epoch=1, verbose=1)
+        model.fit(state.reshape(1,530*470//4), y, batch_size=1, nb_epoch=1, verbose=1)
         state = new_state
         clear_output(wait=True)
 
@@ -142,7 +142,7 @@ while PLAY_AFTER:
     while(not done_n[0]):
         #We are in state S
         #Let's run our Q function on S to get Q values for all possible actions
-        qval = model.predict(state.reshape(1,530*470/4), batch_size=1)
+        qval = model.predict(state.reshape(1,530*470//4), batch_size=1)
         if (random.random() < epsilon): #choose random action
             action = np.random.randint(0,16)
         else: #choose best action from Q(s,a) values
