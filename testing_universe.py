@@ -57,7 +57,7 @@ else:
     model = load_model('model250.h5')
 
 try:
-	pelletsEarnedList = pickle.load(open('pelletsearned.p'), 'rb')
+	pelletsEarnedList = pickle.load(open('pelletsearned.p', 'rb'))
 	pelletsEarnedList.append([])
 except:
 	pelletsEarnedList = [[]]
@@ -134,7 +134,7 @@ while games < epochs:
         model.save('model250.h5')
 
 
-pickle.dump(pelletsEarnedList, open('pelletsearned.p'), 'wb')
+pickle.dump([5], open('pelletsearned.p', 'wb'))
 
 while PLAY_AFTER:
 
