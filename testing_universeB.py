@@ -12,7 +12,6 @@ from skimage.color import rgb2gray
 from skimage.transform import resize
 from keras.models import load_model
 
-#1,530*470//4
 
 epochs = 11
 gamma = 0.9
