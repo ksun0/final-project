@@ -1,7 +1,7 @@
 import gym
 import universe  # register the universe environments
 from keras.models import Sequential
-from keras.layers.core import Dense, Dropout, Activation
+from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution2D
 from keras.optimizers import RMSprop
 from IPython.display import clear_output
@@ -48,6 +48,8 @@ if not LOAD:
 
     model.add(Dense(10000, init='lecun_uniform'))
     model.add(Activation('relu'))
+
+    model.add(Flatten())
     #model.add(Dropout(0.2)) I'm not using dropout, but maybe you wanna give it a try?
 
     model.add(Dense(7000, init='lecun_uniform'))
