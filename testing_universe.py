@@ -6,14 +6,15 @@ from keras.optimizers import RMSprop
 from IPython.display import clear_output
 import random
 import numpy as np
+import pickle
 from skimage.color import rgb2gray
 from skimage.transform import resize
 from keras.models import load_model
 
-epochs = 0
-gamma = 0.9 #since it may take several moves to goal, making gamma high
+epochs = 1
+gamma = 0.9
 epsilon = 1
-games = 0
+games = 0 #always init. to 0
 done_n = [False]
 DEATH_COST = -1/600
 LOAD = True
@@ -55,12 +56,19 @@ if not LOAD:
 else:
     model = load_model('model250.h5')
 
+try:
+	pelletsEarnedList = pickle.load(open('pelletsearned.p'), 'rb')
+	pelletsEarnedList.append([])
+except:
+	pelletsEarnedList = [[]]
+
 env = gym.make('internet.SlitherIO-v0')
 env.configure(remotes=1)  # automatically creates a local docker container
 state = env.reset()
 
 while games < epochs:
 
+    pelletsEarned = 0
     rounds = 0 #keep track of how long snake is alive
 
     while True: #we need to call an action to get the state to update
@@ -76,9 +84,9 @@ while games < epochs:
 
     state = simplify(state[0]['vision'])
 
-    #while game still in progress
-    while(not done_n[0]):
-        #We are in state S
+    #game still in progress
+    while not done_n[0]:
+
         #Let's run our Q function on S to get Q values for all possible actions
         qval = model.predict(state.reshape(1,530*470//4), batch_size=1)
         if (random.random() < epsilon): #choose random action
@@ -87,6 +95,7 @@ while games < epochs:
             action = (np.argmax(qval))
         #Take action, observe new state S'
         new_state, reward, done_n, info = makeMove(state, action)
+        pelletsEarned += reward[0]
         if done_n[0]:
             new_state = state
         else:
@@ -112,6 +121,7 @@ while games < epochs:
         clear_output(wait=True)
 
         rounds += 1
+    pelletsEarnedList[len(pelletsEarnedList)-1].append(pelletsEarned)
 
 
 
@@ -122,6 +132,9 @@ while games < epochs:
 
     if games % 10 == 0:
         model.save('model250.h5')
+
+
+pickle.dump(pelletsEarnedList, open('pelletsearned.p'), 'wb')
 
 while PLAY_AFTER:
 
