@@ -7,7 +7,7 @@ from keras.optimizers import RMSprop
 from IPython.display import clear_output
 import random
 import numpy as np
-import pickle
+# import pickle
 from skimage.color import rgb2gray
 from skimage.transform import resize
 from keras.models import load_model
@@ -42,17 +42,18 @@ if not LOAD:
 
     model = Sequential()
 
-    model.add(Convolution2D(64, 5, 5, border_mode='same', input_shape=(530, 470, 1)))
+    model.add(Convolution2D(16, 10, 10, border_mode='same', input_shape=(530, 470, 1)))
 
-    model.add(Convolution2D(32, 5, 5, border_mode='same'))
-
-    model.add(Dense(10000, init='lecun_uniform'))
-    model.add(Activation('relu'))
+    model.add(Convolution2D(8, 5, 5, border_mode='same'))
 
     model.add(Flatten())
+
+    model.add(Dense(150, init='lecun_uniform'))
+    model.add(Activation('relu'))
+
     #model.add(Dropout(0.2)) I'm not using dropout, but maybe you wanna give it a try?
 
-    model.add(Dense(7000, init='lecun_uniform'))
+    model.add(Dense(75, init='lecun_uniform'))
     model.add(Activation('relu'))
     #model.add(Dropout(0.2))
 
@@ -65,11 +66,11 @@ if not LOAD:
 else:
     model = load_model('model250.h5')
 
-try:
-	pelletsEarnedList = pickle.load(open('pelletsearned.p', 'rb'))
-	pelletsEarnedList.append([])
-except:
-	pelletsEarnedList = [[]]
+# try:
+# 	pelletsEarnedList = pickle.load(open('pelletsearned.p', 'rb'))
+# 	pelletsEarnedList.append([])
+# except:
+# 	pelletsEarnedList = [[]]
 
 env = gym.make('internet.SlitherIO-v0')
 env.configure(remotes=1)  # automatically creates a local docker container
@@ -77,7 +78,7 @@ state = env.reset()
 
 while games < epochs:
 
-    pelletsEarned = 0
+    # pelletsEarned = 0
     rounds = 0 #keep track of how long snake is alive
 
     while True: #we need to call an action to get the state to update
@@ -96,6 +97,8 @@ while games < epochs:
     #game still in progress
     while not done_n[0]:
 
+        print("in loop")
+
         #Let's run our Q function on S to get Q values for all possible actions
         qval = model.predict(state.reshape(1, 530, 470, 1), batch_size=1)
         if (random.random() < epsilon): #choose random action
@@ -104,7 +107,7 @@ while games < epochs:
             action = (np.argmax(qval))
         #Take action, observe new state S'
         new_state, reward, done_n, info = makeMove(state, action)
-        pelletsEarned += reward[0]
+        # pelletsEarned += reward[0]
         if done_n[0]:
             new_state = state
         else:
@@ -125,12 +128,12 @@ while games < epochs:
             update = (DEATH_COST * rounds + (gamma * maxQ))
         y[0][action] = update #target output
         print("Game #: %s" % (games,))
-        model.fit(state.reshape(1, 530, 470, 1), y, batch_size=1, nb_epoch=1, verbose=1)
+        model.fit(state.reshape(1, 530, 470, 1), y, batch_size=1, nb_epoch=1, verbose=1) #batch_size and nb_epoch are both 1 b/c data comes in once per epoch
         state = new_state
         clear_output(wait=True)
 
         rounds += 1
-    pelletsEarnedList[len(pelletsEarnedList)-1].append(pelletsEarned)
+    # pelletsEarnedList[len(pelletsEarnedList)-1].append(pelletsEarned)
 
 
 
@@ -142,8 +145,8 @@ while games < epochs:
     if games % 10 == 0:
         model.save('model250.h5')
 
-print(pelletsEarnedList)
-pickle.dump(pelletsEarnedList, open('pelletsearned.p', 'wb'))
+# print(pelletsEarnedList)
+# pickle.dump(pelletsEarnedList, open('pelletsearned.p', 'wb'))
 
 while PLAY_AFTER:
 
