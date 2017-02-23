@@ -1,3 +1,6 @@
+# CS630: Machine Learning Final Project
+# Lior Hirschfeld, Jihoun Im, Kevin Sun, and Henry Desai
+# IMPORTS
 import gym
 import universe  # register the universe environments
 from keras.models import Sequential
@@ -7,22 +10,21 @@ from keras.optimizers import RMSprop
 from IPython.display import clear_output
 import random
 import numpy as np
-# import pickle
 from skimage.color import rgb2gray
 from skimage.transform import resize
 from keras.models import load_model
 
+# HYPERPARAMATERS
+epochs = 11             # Sets the number of games the model trains on.
+gamma = 0.9             # Sets the amount the model consider future reward.
+epsilon = 1             # Sets exploration vs exploitation value.
+DEATH_COST = -1/600     # Sets how much should the bot be harmed for dying.
+LOAD = False            # Sets whether a previous model should be loaded.
+PLAY_AFTER = True       # Sets whether the model plays after it finishes training.
 
-epochs = 11
-gamma = 0.9
-epsilon = 1
-games = 0 #always init. to 0
-done_n = [False]
-DEATH_COST = -1/600
-LOAD = False
-PLAY_AFTER = True
-
+#HELPER METHODS
 def makeMove(state, action):
+    # This method takes an action and moves the mouse accordingly.
     mousePositions = []
     for i in range(8):
         mousePositions.append((100 * np.cos(2 * np.pi / 8 * i), 100 * np.sin(2 * np.pi / 8 * i)))
@@ -33,55 +35,48 @@ def makeMove(state, action):
     return env.step(action_n)
 
 def simplify(data):
-    data = np.array(data)[0:530,0:470,0:3]
-    data = rgb2gray(data)
-    #data = resize(data, (265, 235))
+    # This method simplifies the data received from Universe to something managable.
+    data = np.array(data)[0:530,0:470,0:3] # Ignore all but the game screen.
+    data = rgb2gray(data) # Collapse RGB
     return np.array(data)
 
 if not LOAD:
-
+    # Construct a new model.
+    # The size an # of hidden layers can be messed with here.
+    # We found that these numbers worked moderately well on the GPU.
     model = Sequential()
 
     model.add(Convolution2D(16, 10, 10, border_mode='same', input_shape=(530, 470, 1)))
-
     model.add(Convolution2D(8, 5, 5, border_mode='same'))
 
     model.add(Flatten())
-
     model.add(Dense(150, init='lecun_uniform'))
     model.add(Activation('relu'))
 
-    #model.add(Dropout(0.2)) I'm not using dropout, but maybe you wanna give it a try?
-
     model.add(Dense(75, init='lecun_uniform'))
     model.add(Activation('relu'))
-    #model.add(Dropout(0.2))
 
     model.add(Dense(16, init='lecun_uniform'))
-    model.add(Activation('linear')) #linear output so we can have range of real-valued outputs
+    model.add(Activation('linear'))
 
     rms = RMSprop()
     model.compile(loss='mse', optimizer=rms)
 
 else:
+    # Load an existing, trained model.
     model = load_model('model250.h5')
 
-# try:
-# 	pelletsEarnedList = pickle.load(open('pelletsearned.p', 'rb'))
-# 	pelletsEarnedList.append([])
-# except:
-# 	pelletsEarnedList = [[]]
-
+#INITIALIZE UNIVERSE ENVIRONMENT
+games = 0 #always init. to 0
+done_n = [False]
 env = gym.make('internet.SlitherIO-v0')
-env.configure(remotes=1)  # automatically creates a local docker container
+env.configure(remotes=1)
 state = env.reset()
 
 while games < epochs:
-
-    # pelletsEarned = 0
     rounds = 0 #keep track of how long snake is alive
 
-    while True: #we need to call an action to get the state to update
+    while True: #Wait for Universe to finish initializing.
         action_n = [[('PointerEvent', 200, 200, False)]]
         state, reward_n, done_n, info = env.step(action_n)
         env.render()
@@ -92,65 +87,57 @@ while games < epochs:
         except:
             pass
 
-    state = simplify(state[0]['vision'])
+    state = simplify(state[0]['vision']) #
 
-    #game still in progress
-    while not done_n[0]:
+    while not done_n[0]: #While the game is still in progress
 
-        print("in loop")
-
-        #Let's run our Q function on S to get Q values for all possible actions
+        # Store expected value for all possible actions.
         qval = model.predict(state.reshape(1, 530, 470, 1), batch_size=1)
-        if (random.random() < epsilon): #choose random action
+
+        # Take a random or the predicted best action.
+        if (random.random() < epsilon):
             action = np.random.randint(0,16)
-        else: #choose best action from Q(s,a) values
+        else:
             action = (np.argmax(qval))
-        #Take action, observe new state S'
+        #Take an action and observe the new state
         new_state, reward, done_n, info = makeMove(state, action)
-        # pelletsEarned += reward[0]
         if done_n[0]:
             new_state = state
         else:
             new_state = simplify(new_state[0]['vision'])
-        env.render()
-        #Observe reward
 
-        #Get max_Q(S',a)
+        # Rerender the screen. This can be skipped if the
+        # developer doesn't care about watching the snake.
+        env.render()
+
         newQ = model.predict(new_state.reshape(1, 530, 470, 1), batch_size=1)
         maxQ = np.max(newQ)
         y = np.zeros((1,16))
         y[:] = qval[:]
         if not done_n[0]: #non-terminal state
-            update = ((reward[0] - 0.1) + (gamma * maxQ))
+            update = ((reward[0] - 0.1) + (gamma * maxQ)) #algorithm for q-learning
             if action >= 8:
                 update -= 0.1 #Penalize for boosting
         else: #terminal state
             update = (DEATH_COST * rounds + (gamma * maxQ))
-        y[0][action] = update #target output
-        print("Game #: %s" % (games,))
-        model.fit(state.reshape(1, 530, 470, 1), y, batch_size=1, nb_epoch=1, verbose=1) #batch_size and nb_epoch are both 1 b/c data comes in once per epoch
+        y[0][action] = update
+        model.fit(state.reshape(1, 530, 470, 1), y, batch_size=1, nb_epoch=1, verbose=1)
         state = new_state
         clear_output(wait=True)
 
         rounds += 1
-    # pelletsEarnedList[len(pelletsEarnedList)-1].append(pelletsEarned)
 
 
-
-    if epsilon > 0.1:
-        epsilon -= (1/(epochs)) #we may want to change this later
+    if epsilon > 0.1: #decreases the value of epsilon because as the model learns more, it should be taking less random actions
+        epsilon -= (1/(epochs))
 
     games += 1
 
     if games % 10 == 0:
         model.save('model250.h5')
 
-# print(pelletsEarnedList)
-# pickle.dump(pelletsEarnedList, open('pelletsearned.p', 'wb'))
-
 while PLAY_AFTER:
-
-    while True: #we need to call an action to get the state to update
+    while True: # Wait for Universe to finish initializing.
         action_n = [[('PointerEvent', 200, 200, False)]]
         state, reward_n, done_n, info = env.step(action_n)
         env.render()
@@ -163,24 +150,17 @@ while PLAY_AFTER:
 
     state = simplify(state[0]['vision'])
 
-    #while game still in progress
-    while(not done_n[0]):
-        #We are in state S
-        #Let's run our Q function on S to get Q values for all possible actions
+    while(not done_n[0]): #while game is still in progress
         qval = model.predict(state.reshape(1, 530, 470, 1), batch_size=1)
-        print("qval: ", qval)
         if (random.random() < epsilon): #choose random action
             action = np.random.randint(0,16)
-        else: #choose best action from Q(s,a) values
+        else:
             action = (np.argmax(qval))
-        #Take action, observe new state S'
-        print("action: ", action, "eps: ", epsilon)
         new_state, reward, done_n, info = makeMove(state, action)
         if done_n[0]:
             new_state = state
         else:
             new_state = simplify(new_state[0]['vision'])
         env.render()
-        print((new_state == state).all())
         state = new_state
         clear_output(wait=True)
