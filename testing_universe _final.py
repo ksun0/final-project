@@ -40,11 +40,11 @@ def makeMove(state, action):
 def simplify(data):
     # This method simplifies the data received from Universe to something managable.
     data = np.array(data)[0:530,0:470,0:3] # Ignore all but the game screen.
-    data = rgb2gray(data)                  # Collapse RGB   
+    data = rgb2gray(data)                  # Collapse RGB
     data = resize(data, (53, 47))          # BIN
     return np.array(data)
 
-if not LOAD: 
+if not LOAD:
     # Construct a new model.
     # The size an # of hidden layers can be messed with here.
     # We found that these numbers worked moderately well on the GPU.
@@ -53,7 +53,7 @@ if not LOAD:
     model.add(Activation('tanh'))
 
     model.add(Dense(16, init='uniform'))
-    model.add(Activation('linear')) 
+    model.add(Activation('linear'))
     rms = RMSprop()
 
     model.compile(loss='mse', optimizer=RMSprop(lr=LEARNING_RATE))
@@ -101,7 +101,7 @@ while games < epochs:
         qval = model.predict(state.reshape(1,53*47), batch_size=1)
 
         # Take a random or the predicted best action.
-        if (random.random() < epsilon): 
+        if (random.random() < epsilon):
             action = np.random.randint(0,16)
         else:
             action = (np.argmax(qval))
@@ -115,10 +115,10 @@ while games < epochs:
         else:
             new_state = simplify(new_state[0]['vision'])
 
-        # Rerender the screen. This can be skipped if the 
+        # Rerender the screen. This can be skipped if the
         # developer doesn't care about watching the snake.
         env.render()
-        
+
         if (len(replay) < buff):
             # While the buffer is being filled, don't train.
             replay.append((state, action, reward, new_state))
@@ -148,7 +148,7 @@ while games < epochs:
                         update -= 0.1 #Penalize the model for boosting
                 else: # terminal state
                     update = (DEATH_COST * rounds + (gamma * maxQ))
-     
+
                 y[0][action] = update
                 X_train.append(old_state.reshape(53*47))
                 Y_train.append(y.reshape(16,))
@@ -197,7 +197,7 @@ while PLAY_AFTER:
         # always prefer one direction after it had finished training.
         # Hypothetically, on average, all directional movements should be
         # equally likely, so we established this method.
-        # By calculating the average reward given to each action, 
+        # By calculating the average reward given to each action,
         # which should hypothetically be the same (for 0-7) in a proper model,
         # and then subtracting that from all future predictions, we can get
         # an idea of how 'relatively' good the model thinks the action is in
